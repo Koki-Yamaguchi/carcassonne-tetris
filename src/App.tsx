@@ -1167,21 +1167,26 @@ function App() {
         case 'ArrowLeft':
         case 'a':
         case 'A':
+          event.preventDefault();
           movePiece('left');
           break;
         case 'ArrowRight':
         case 'd':
         case 'D':
+          event.preventDefault();
           movePiece('right');
           break;
         case 'ArrowDown':
         case 's':
         case 'S':
+          event.preventDefault();
           movePiece('down');
           break;
         case 'ArrowUp':
         case 'w':
         case 'W':
+        case ' ':
+          event.preventDefault();
           movePiece('rotate');
           break;
       }
@@ -1290,11 +1295,10 @@ function App() {
           )}
         </div>
         <div className="controls">
-          <div>Controls:</div>
-          <div>← A Move Left</div>
-          <div>→ D Move Right</div>
-          <div>↑ W Rotate</div>
-          <div>Tiles drop automatically</div>
+          <div>← / A: Move Left</div>
+          <div>→ / D: Move Right</div>
+          <div>↓ / S: Move Down</div>
+          <div>↑ / W / Space: Rotate</div>
         </div>
         <div className="mobile-controls">
           <div className="control-row">
