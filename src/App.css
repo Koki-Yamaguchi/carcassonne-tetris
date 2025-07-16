@@ -458,15 +458,19 @@
 }
 
 .rankings-list {
-  max-height: 300px;
+  max-height: 500px;
   overflow-y: auto;
 }
+
+.mobile-rankings .rankings-list {
+    max-height: 400px; /* Slightly smaller on mobile for better UX */
+  }
 
 .ranking-entry {
   display: grid;
   grid-template-columns: 50px 1fr 100px;
-  gap: 15px;
-  padding: 12px 15px;
+  gap: 5px;
+  padding: 12px 10px;
   background: rgba(248, 250, 252, 0.8);
   margin-bottom: 8px;
   border-radius: 10px;

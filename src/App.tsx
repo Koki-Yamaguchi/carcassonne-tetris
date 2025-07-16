@@ -411,7 +411,7 @@ const getGlobalRankings = async (): Promise<GlobalRankingEntry[]> => {
     const q = query(
       collection(db, 'users'),
       orderBy('bestScore', 'desc'),
-      limit(10)
+      limit(50)
     );
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs
@@ -1664,7 +1664,9 @@ function App() {
               globalRankings.map((entry, index) => (
                 <div key={entry.id || index} className="ranking-entry">
                   <span className="rank">#{index + 1}</span>
-                  <span className="username">{entry.username}</span>
+                  <span className="username">
+                    {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
+                  </span>
                   <span className="score">{entry.score}</span>
                 </div>
               ))
@@ -1749,7 +1751,9 @@ function App() {
             globalRankings.map((entry, index) => (
               <div key={entry.id || index} className="ranking-entry">
                 <span className="rank">#{index + 1}</span>
-                <span className="username">{entry.username}</span>
+                <span className="username">
+                  {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
+                </span>
                 <span className="score">{entry.score}</span>
               </div>
             ))
