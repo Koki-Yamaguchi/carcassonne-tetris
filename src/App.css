@@ -585,3 +585,27 @@ html, body {
     display: block;
   }
 }
+
+/* User ID Display */
+.user-id-display {
+  margin-top: 30px;
+  padding: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  max-width: 300px;
+  margin-left: auto;
+  margin-right: auto;
+  font-family: monospace;
+  letter-spacing: 1px;
+}
+
+@media (max-width: 768px) {
+  .user-id-display {
+    margin-top: 20px;
+    font-size: 11px;
+    max-width: 250px;
+  }
+}

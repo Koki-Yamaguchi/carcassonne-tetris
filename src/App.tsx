@@ -1758,6 +1758,13 @@ function App() {
           )}
         </div>
       </div>
+      
+      {/* User Identification ID at bottom */}
+      {!authLoading && user && (
+        <div className="user-id-display">
+          Identification ID: {user.uid.substring(0, 12)}
+        </div>
+      )}
         </>
       )}
     </div>
