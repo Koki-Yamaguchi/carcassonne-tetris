@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { UnionFind } from './union_find';
+import { db, auth } from './firebase';
+import { 
+  collection, 
+  query, 
+  orderBy, 
+  limit, 
+  getDocs, 
+  serverTimestamp,
+  doc,
+  setDoc,
+  getDoc,
+  updateDoc
+} from 'firebase/firestore';
+import { 
+  signInAnonymously, 
+  onAuthStateChanged, 
+  User 
+} from 'firebase/auth';
 
 // Carcassonne tile names mapping to your images
 const CARCASSONNE_TILES = [
@@ -100,6 +118,24 @@ interface BoardCell {
 interface Side {
   num: number;
   feature: 'road' | 'city';
+}
+
+interface GlobalRankingEntry {
+  score: number; // User's best score
+  username: string;
+  uid: string; // Firebase Auth UID
+  timestamp: any; // User's lastPlayed timestamp
+  date: string; // Formatted date of last play
+  id?: string; // Firestore document ID (user's uid)
+}
+
+interface UserProfile {
+  uid: string; // Firebase Auth UID (also the document ID)
+  username: string;
+  bestScore: number;
+  totalGames: number;
+  createdAt: any; // Firestore serverTimestamp
+  lastPlayed: any; // Firestore serverTimestamp
 }
 
 // Helper function to get tile sides based on tile name (not rotated)
@@ -285,6 +321,155 @@ function rotateSides(
 const tileRoadFeatures = new Map<number, number[]>();
 const tileCityFeatures = new Map<number, number[]>();
 
+const createOrUpdateUserProfile = async (uid: string, username: string, score: number): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      // Update existing user (don't increment totalGames here - it's handled separately)
+      const userData = userDoc.data() as UserProfile;
+      const newBestScore = Math.max(userData.bestScore, score);
+      
+      await updateDoc(userRef, {
+        username,
+        bestScore: newBestScore,
+        lastPlayed: serverTimestamp()
+      });
+    } else {
+      // Create new user profile (should rarely happen since totalGames is updated on game over)
+      await setDoc(userRef, {
+        uid,
+        username,
+        bestScore: score,
+        totalGames: 1, // This will be correct if it's their first game
+        createdAt: serverTimestamp(),
+        lastPlayed: serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+  }
+};
+
+const createInitialUserProfile = async (uid: string): Promise<UserProfile> => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const newProfile: UserProfile = {
+      uid,
+      username: '', // Empty initially, will be set when user submits first score
+      bestScore: 0,
+      totalGames: 0,
+      createdAt: serverTimestamp(),
+      lastPlayed: serverTimestamp()
+    };
+    
+    await setDoc(userRef, newProfile);
+    return newProfile;
+  } catch (error) {
+    console.error('Error creating initial user profile:', error);
+    // Return a fallback profile that can be used locally until Firestore is available
+    return {
+      uid,
+      username: '',
+      bestScore: 0,
+      totalGames: 0,
+      createdAt: new Date(),
+      lastPlayed: new Date()
+    };
+  }
+};
+
+const getUserProfile = async (uid: string): Promise<UserProfile | null> => {
+  try {
+    const userDoc = await getDoc(doc(db, 'users', uid));
+    if (userDoc.exists()) {
+      return userDoc.data() as UserProfile;
+    }
+    return null;
+  } catch (error) {
+    console.error('Error fetching user profile:', error);
+    return null;
+  }
+};
+
+const isPersonalBest = async (uid: string, score: number): Promise<boolean> => {
+  try {
+    const userProfile = await getUserProfile(uid);
+    if (!userProfile) {
+      return true; // First time playing
+    }
+    return score > userProfile.bestScore;
+  } catch (error) {
+    console.error('Error checking personal best:', error);
+    return true; // Allow submission on error
+  }
+};
+
+const getGlobalRankings = async (): Promise<GlobalRankingEntry[]> => {
+  try {
+    const q = query(
+      collection(db, 'users'),
+      orderBy('bestScore', 'desc'),
+      limit(10)
+    );
+    const querySnapshot = await getDocs(q);
+    return querySnapshot.docs
+      .map(doc => {
+        const userData = doc.data() as UserProfile;
+        return {
+          score: userData.bestScore,
+          username: userData.username || 'Anonymous',
+          uid: userData.uid,
+          timestamp: userData.lastPlayed,
+          date: userData.lastPlayed ? new Date(userData.lastPlayed.toDate()).toLocaleDateString() : 'Unknown',
+          id: doc.id
+        };
+      })
+      .filter(entry => entry.score > 0); // Only show users who have played at least one game
+  } catch (error) {
+    console.error('Error fetching rankings:', error);
+    return [];
+  }
+};
+
+// Local storage functions for username
+const saveUsername = (username: string) => {
+  localStorage.setItem('carcassonne-tetris-username', username);
+};
+
+const getSavedUsername = (): string => {
+  return localStorage.getItem('carcassonne-tetris-username') || '';
+};
+
+const updateUserTotalGames = async (uid: string): Promise<void> => {
+  try {
+    const userRef = doc(db, 'users', uid);
+    const userDoc = await getDoc(userRef);
+    
+    if (userDoc.exists()) {
+      // Update existing user's total games count
+      const userData = userDoc.data() as UserProfile;
+      await updateDoc(userRef, {
+        totalGames: userData.totalGames + 1,
+        lastPlayed: serverTimestamp()
+      });
+    } else {
+      // If no profile exists, create one with 1 game played
+      await setDoc(userRef, {
+        uid,
+        username: '',
+        bestScore: 0,
+        totalGames: 1,
+        createdAt: serverTimestamp(),
+        lastPlayed: serverTimestamp()
+      });
+    }
+  } catch (error) {
+    console.error('Error updating user total games:', error);
+  }
+};
+
 function App() {
   const [board, setBoard] = useState<(BoardCell | null)[][]>(
     Array(BOARD_HEIGHT)
@@ -300,8 +485,53 @@ function App() {
   const [gameOver, setGameOver] = useState(false);
   const [nextTileId, setNextTileId] = useState(1);
   const [blinkingTiles, setBlinkingTiles] = useState<Set<number>>(new Set());
+  const [globalRankings, setGlobalRankings] = useState<GlobalRankingEntry[]>([]);
+  const [showUsernameInput, setShowUsernameInput] = useState(false);
+  const [username, setUsername] = useState(() => getSavedUsername());
+  const [isSubmittingScore, setIsSubmittingScore] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
+  
+  // Auth state
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const uf = useState(() => new UnionFind())[0];
+
+  // Initialize anonymous authentication
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        // User is signed in
+        setUser(firebaseUser);
+        let profile = await getUserProfile(firebaseUser.uid);
+        
+        // If no profile exists, create one immediately
+        if (!profile) {
+          profile = await createInitialUserProfile(firebaseUser.uid);
+          console.log('Created initial user profile for new user');
+        }
+        
+        setUserProfile(profile);
+        
+        // If user has a profile with username, use it
+        if (profile && profile.username) {
+          setUsername(profile.username);
+          saveUsername(profile.username);
+        }
+      } else {
+        // No user is signed in, sign in anonymously
+        try {
+          await signInAnonymously(auth);
+        } catch (error) {
+          console.error('Error signing in anonymously:', error);
+        }
+      }
+      setAuthLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
 
   // Helper functions for road management
   const getAdjacentPosition = useCallback(
@@ -901,7 +1131,7 @@ function App() {
               // if (hasRoads) {
               //   const featureIds = createRoadFeatures(tileName, currentId);
               //   tileRoadFeatures.set(currentId, featureIds);
-              //
+  //
               //   // Merge with adjacent roads
               //   mergeAdjacentRoads(newBoard, boardX, boardY, currentId);
               // }
@@ -1114,7 +1344,7 @@ function App() {
     [currentPiece, gameOver, isValidPosition]
   );
 
-  const dropPiece = useCallback(() => {
+  const dropPiece = useCallback(async () => {
     if (!currentPiece || gameOver) return;
 
     // Force the piece to move down, regardless of user input
@@ -1132,6 +1362,13 @@ function App() {
       if (!canPlaceTile(currentPiece, currentPiece.position)) {
         // Cannot place due to conflicts - game over
         setGameOver(true);
+        // Update total games count when game ends
+        if (user) {
+          await updateUserTotalGames(user.uid);
+          // Refresh user profile to show updated total games
+          const updatedProfile = await getUserProfile(user.uid);
+          setUserProfile(updatedProfile);
+        }
         return;
       }
 
@@ -1143,6 +1380,13 @@ function App() {
         setCurrentPiece(nextPiece);
       } else {
         setGameOver(true);
+        // Update total games count when game ends
+        if (user) {
+          await updateUserTotalGames(user.uid);
+          // Refresh user profile to show updated total games
+          const updatedProfile = await getUserProfile(user.uid);
+          setUserProfile(updatedProfile);
+        }
       }
     }
   }, [
@@ -1152,6 +1396,7 @@ function App() {
     canPlaceTile,
     placePiece,
     createNewPiece,
+    user,
   ]);
 
   useEffect(() => {
@@ -1163,6 +1408,12 @@ function App() {
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
+      // Don't handle game controls if user is typing in an input field
+      const target = event.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
       switch (event.key) {
         case 'ArrowLeft':
         case 'a':
@@ -1260,6 +1511,69 @@ function App() {
     ));
   };
 
+  // Ranking functions
+  const fetchGlobalRankings = useCallback(async () => {
+    const rankings = await getGlobalRankings();
+    setGlobalRankings(rankings);
+  }, []);
+
+  const handleSubmitScore = useCallback(async () => {
+    if (!user) {
+      alert('Please wait for authentication to complete.');
+      return;
+    }
+
+    if (!username.trim()) {
+      setShowUsernameInput(true);
+      return;
+    }
+
+    if (score <= 0) {
+      alert('Cannot submit a score of 0!');
+      return;
+    }
+
+    // Check if this is a personal best
+    const isNewPersonalBest = await isPersonalBest(user.uid, score);
+    if (!isNewPersonalBest) {
+      alert('You can only submit scores that are your personal best!');
+      return;
+    }
+
+    setIsSubmittingScore(true);
+    try {
+      await createOrUpdateUserProfile(user.uid, username.trim(), score);
+      saveUsername(username.trim());
+      
+      // Refresh user profile and rankings
+      const updatedProfile = await getUserProfile(user.uid);
+      setUserProfile(updatedProfile);
+      await fetchGlobalRankings();
+      
+      // Mark score as submitted for this game
+      setScoreSubmitted(true);
+      
+      alert('Score submitted successfully!');
+    } catch (error) {
+      alert('Failed to submit score. Please try again.');
+    } finally {
+      setIsSubmittingScore(false);
+    }
+  }, [score, username, user, fetchGlobalRankings]);
+
+  const handleUsernameSubmit = useCallback(async () => {
+    if (username.trim()) {
+      saveUsername(username.trim());
+      setShowUsernameInput(false);
+      await handleSubmitScore();
+    }
+  }, [username, handleSubmitScore]);
+
+  // Load rankings on component mount
+  useEffect(() => {
+    fetchGlobalRankings();
+  }, [fetchGlobalRankings]);
+
   const resetGame = () => {
     setBoard(
       Array(BOARD_HEIGHT)
@@ -1271,6 +1585,8 @@ function App() {
     setGameOver(false);
     setNextTileId(1);
     setBlinkingTiles(new Set());
+    setShowUsernameInput(false);
+    setScoreSubmitted(false); // Reset score submission status for new game
     // Reset the UnionFind and tile features
     uf.reset();
     tileRoadFeatures.clear();
@@ -1279,21 +1595,86 @@ function App() {
 
   return (
     <div className="App">
-      <h2>Carcassonne Tetris</h2>
-      <div className="score-header">
-        <div className="score-left">Score: {score}</div>
-        <div className="score-right">Best: {bestScore}</div>
-      </div>
+      {authLoading ? (
+        <div className="loading">
+          <h2>Carcassonne Tetris</h2>
+          <div>Initializing...</div>
+        </div>
+      ) : (
+        <>
+          <h2>Carcassonne Tetris</h2>
+          <div className="score-header">
+            <div className="score-left">Score: {score}</div>
+            <div className="score-right">
+              Best: {userProfile ? userProfile.bestScore : bestScore}
+            </div>
+          </div>
+          <div className="header-controls">
+          </div>
       <div className="game-container">
         <div className="game-board-container">
           <div className="game-board">{renderBoard()}</div>
           {gameOver && (
             <div className="game-over">
-              <div>Game Over!</div>
-              <button onClick={resetGame}>New Game</button>
+              <div className="game-over-title">Game Over!</div>
+              <div className="game-over-score">Final Score: {score}</div>
+              <div className="game-over-buttons">
+                <button onClick={resetGame}>New Game</button>
+                {score > 0 && !authLoading && !scoreSubmitted && score > (userProfile ? userProfile.bestScore : bestScore) && (
+                  <button 
+                    onClick={handleSubmitScore} 
+                    disabled={isSubmittingScore}
+                  >
+                    {isSubmittingScore ? 'Submitting...' : 'Submit Score'}
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+          
+          {/* Username Input Dialog */}
+          {showUsernameInput && (
+            <div className="username-input">
+              <h3>Enter Your Username</h3>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="Your username"
+                maxLength={20}
+                onKeyPress={(e) => e.key === 'Enter' && handleUsernameSubmit()}
+              />
+              <div>
+                <button onClick={handleUsernameSubmit} disabled={!username.trim()}>
+                  Submit Score
+                </button>
+                <button onClick={() => setShowUsernameInput(false)}>
+                  Cancel
+                </button>
+              </div>
             </div>
           )}
         </div>
+        
+        {/* Leaderboard positioned for desktop layout */}
+        <div className="rankings desktop-rankings">
+          <h3>Leaderboard</h3>
+          <div className="rankings-list">
+            {globalRankings.length > 0 ? (
+              globalRankings.map((entry, index) => (
+                <div key={entry.id || index} className="ranking-entry">
+                  <span className="rank">#{index + 1}</span>
+                  <span className="username">{entry.username}</span>
+                  <span className="score">{entry.score}</span>
+                </div>
+              ))
+            ) : (
+              <div className="no-scores">No scores yet! Be the first to submit a score.</div>
+            )}
+          </div>
+        </div>
+        
+        {/* Control buttons moved below game board */}
         <div className="controls">
           <div>← / A: Move Left</div>
           <div>→ / D: Move Right</div>
@@ -1359,6 +1740,26 @@ function App() {
           </div>
         </div>
       </div>
+      
+      {/* Mobile Rankings Display - shown only on mobile */}
+      <div className="rankings mobile-rankings">
+        <h3>Leaderboard</h3>
+        <div className="rankings-list">
+          {globalRankings.length > 0 ? (
+            globalRankings.map((entry, index) => (
+              <div key={entry.id || index} className="ranking-entry">
+                <span className="rank">#{index + 1}</span>
+                <span className="username">{entry.username}</span>
+                <span className="score">{entry.score}</span>
+              </div>
+            ))
+          ) : (
+            <div className="no-scores">No scores yet! Be the first to submit a score.</div>
+          )}
+        </div>
+      </div>
+        </>
+      )}
     </div>
   );
 }
