@@ -76,7 +76,7 @@
   animation: gentleAppear 0.5s ease-out;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 2px;
   min-width: 240px;
   width: auto;
 }
@@ -372,7 +372,7 @@
   display: flex;
   gap: 10px;
   justify-content: center;
-  margin-top: 6px;
+  margin-top: 2px;
 }
 
 .game-over-buttons button {
