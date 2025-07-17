@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import './App.css';
 import { UnionFind } from './union_find';
 import { db, auth } from './firebase';
+import { FaPause, FaPlay } from "react-icons/fa";
 import { 
   collection, 
   query, 
@@ -483,6 +484,10 @@ function App() {
     return saved ? parseInt(saved, 10) : 0;
   });
   const [gameOver, setGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [gamePaused, setGamePaused] = useState(false);
+  const [gameOverFadingOut, setGameOverFadingOut] = useState(false);
+  const [gamePausedFadingOut, setGamePausedFadingOut] = useState(false);
   const [nextTileId, setNextTileId] = useState(1);
   const [blinkingTiles, setBlinkingTiles] = useState<Set<number>>(new Set());
   const [globalRankings, setGlobalRankings] = useState<GlobalRankingEntry[]>([]);
@@ -1309,7 +1314,7 @@ function App() {
 
   const movePiece = useCallback(
     (direction: 'left' | 'right' | 'rotate' | 'down') => {
-      if (!currentPiece || gameOver) return;
+      if (!currentPiece || gameOver || gamePaused) return;
 
       let newPosition = { ...currentPiece.position };
       let newRotation = currentPiece.rotation;
@@ -1341,7 +1346,7 @@ function App() {
       }
       // For user input, never trigger placement - that's handled by dropPiece only
     },
-    [currentPiece, gameOver, isValidPosition]
+    [currentPiece, gameOver, gamePaused, isValidPosition]
   );
 
   const dropPiece = useCallback(async () => {
@@ -1448,17 +1453,17 @@ function App() {
   }, [movePiece]);
 
   useEffect(() => {
-    if (!gameOver) {
+    if (!gameOver && gameStarted && !gamePaused) {
       const interval = setInterval(dropPiece, 1000); // Constant 1 second interval
       return () => clearInterval(interval);
     }
-  }, [dropPiece, gameOver]);
+  }, [dropPiece, gameOver, gameStarted, gamePaused]);
 
   useEffect(() => {
-    if (!currentPiece && !gameOver) {
+    if (!currentPiece && !gameOver && gameStarted) {
       setCurrentPiece(createNewPiece());
     }
-  }, [currentPiece, gameOver, createNewPiece]);
+  }, [currentPiece, gameOver, gameStarted, createNewPiece]);
 
   const handleTouchControl = useCallback(
     (direction: 'left' | 'right' | 'rotate' | 'down') => {
@@ -1575,22 +1580,76 @@ function App() {
   }, [fetchGlobalRankings]);
 
   const resetGame = () => {
-    setBoard(
-      Array(BOARD_HEIGHT)
-        .fill(null)
-        .map(() => Array(BOARD_WIDTH).fill(null))
-    );
-    setCurrentPiece(null);
-    setScore(0);
-    setGameOver(false);
-    setNextTileId(1);
-    setBlinkingTiles(new Set());
-    setShowUsernameInput(false);
-    setScoreSubmitted(false); // Reset score submission status for new game
-    // Reset the UnionFind and tile features
-    uf.reset();
-    tileRoadFeatures.clear();
-    tileCityFeatures.clear();
+    if (gameOver) {
+      // Start fade-out animation
+      setGameOverFadingOut(true);
+      
+      // After animation completes, reset the game
+      setTimeout(() => {
+        setBoard(
+          Array(BOARD_HEIGHT)
+            .fill(null)
+            .map(() => Array(BOARD_WIDTH).fill(null))
+        );
+        setCurrentPiece(null);
+        setScore(0);
+        setGameOver(false);
+        setGameStarted(true);
+        setGamePaused(false);
+        setGameOverFadingOut(false);
+        setGamePausedFadingOut(false);
+        setNextTileId(1);
+        setBlinkingTiles(new Set());
+        setShowUsernameInput(false);
+        setScoreSubmitted(false); // Reset score submission status for new game
+        // Reset the UnionFind and tile features
+        uf.reset();
+        tileRoadFeatures.clear();
+        tileCityFeatures.clear();
+      }, 300); // Match the CSS animation duration
+    } else {
+      // Direct reset if not from game over modal
+      setBoard(
+        Array(BOARD_HEIGHT)
+          .fill(null)
+          .map(() => Array(BOARD_WIDTH).fill(null))
+      );
+      setCurrentPiece(null);
+      setScore(0);
+      setGameOver(false);
+      setGameStarted(true);
+      setGamePaused(false);
+      setGameOverFadingOut(false);
+      setGamePausedFadingOut(false);
+      setNextTileId(1);
+      setBlinkingTiles(new Set());
+      setShowUsernameInput(false);
+      setScoreSubmitted(false);
+      uf.reset();
+      tileRoadFeatures.clear();
+      tileCityFeatures.clear();
+    }
+  };
+
+  const startGame = () => {
+    setGameStarted(true);
+  };
+
+  const pauseGame = () => {
+    setGamePaused(true);
+  };
+
+  const resumeGame = () => {
+    if (gamePaused) {
+      // Start fade-out animation
+      setGamePausedFadingOut(true);
+      
+      // After animation completes, resume the game
+      setTimeout(() => {
+        setGamePaused(false);
+        setGamePausedFadingOut(false);
+      }, 300); // Match the CSS animation duration
+    }
   };
 
   return (
@@ -1614,8 +1673,31 @@ function App() {
       <div className="game-container">
         <div className="game-board-container">
           <div className="game-board">{renderBoard()}</div>
-          {gameOver && (
-            <div className="game-over">
+          {gameStarted && !gameOver && (
+            <div className="pause-button-container">
+              <button 
+                className="pause-button" 
+                onClick={gamePaused ? resumeGame : pauseGame}
+              >
+                {gamePaused ? <FaPlay /> : <FaPause />}
+              </button>
+            </div>
+          )}
+          {!gameStarted && !gameOver && (
+            <div className="start-button-overlay">
+              <button className="start-button" onClick={startGame}>Start</button>
+            </div>
+          )}
+          {(gamePaused || gamePausedFadingOut) && (
+            <div className={`game-paused ${gamePausedFadingOut ? 'fade-out' : ''}`}>
+              <div className="game-paused-title">Game Paused</div>
+              <div className="game-paused-buttons">
+                <button onClick={resumeGame}>Resume</button>
+              </div>
+            </div>
+          )}
+          {(gameOver || gameOverFadingOut) && (
+            <div className={`game-over ${gameOverFadingOut ? 'fade-out' : ''}`}>
               <div className="game-over-title">Game Over!</div>
               <div className="game-over-score">Final Score: {score}</div>
               <div className="game-over-buttons">
