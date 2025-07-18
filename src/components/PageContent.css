@@ -14,16 +14,9 @@
 .page-header {
   text-align: center;
   margin-bottom: 30px;
-  padding-bottom: 20px;
   border-bottom: 2px solid #e0e0e0;
 }
 
-.page-header h1 {
-  color: #2e7d32;
-  margin-bottom: 10px;
-  font-size: 2.5rem;
-  font-weight: 700;
-}
 
 .last-updated {
   color: #666;
@@ -47,12 +40,12 @@
 .rules-content h2,
 .policy-content h2,
 .terms-content h2 {
-  color: #1b5e20;
-  font-size: 1.5rem;
-  font-weight: 600;
+  color: #333;
+  font-size: 1.3rem;
+  font-weight: 500;
   margin-bottom: 15px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid #c8e6c9;
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 .rules-content h3,
@@ -93,7 +86,6 @@
   padding: 15px;
   border-radius: 8px;
   margin-bottom: 15px;
-  border-left: 4px solid #4caf50;
 }
 
 .rule-item h3,

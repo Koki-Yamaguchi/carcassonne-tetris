@@ -10,8 +10,8 @@ const Navigation: React.FC<NavigationProps> = ({ currentPage, onPageChange }) =>
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const menuItems = [
-    { id: 'game', label: 'Play Game' },
-    { id: 'rules', label: 'Game Rules' },
+    { id: 'game', label: 'Play' },
+    { id: 'rules', label: 'Rules' },
     { id: 'privacy', label: 'Privacy Policy' },
     { id: 'terms', label: 'Terms of Use' }
   ];
