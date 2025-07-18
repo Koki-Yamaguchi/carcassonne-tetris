@@ -5,7 +5,7 @@ const PrivacyPolicy: React.FC = () => {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1>Privacy Policy</h1>
+        <h2>Privacy Policy</h2>
         <p className="last-updated">Last updated: January 17, 2025</p>
       </div>
       
@@ -39,7 +39,7 @@ const PrivacyPolicy: React.FC = () => {
         <section>
           <h2>How We Use Your Information</h2>
           <ul>
-            <li>To maintain the game leaderboard and display rankings</li>
+            <li>To maintain and display the game leaderboard</li>
             <li>To improve game performance and user experience</li>
             <li>To analyze usage patterns and optimize the game</li>
             <li>To ensure the security and proper functioning of our services</li>
