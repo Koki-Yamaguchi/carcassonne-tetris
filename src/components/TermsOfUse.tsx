@@ -5,7 +5,7 @@ const TermsOfUse: React.FC = () => {
   return (
     <div className="page-content">
       <div className="page-header">
-        <h1>Terms of Use</h1>
+        <h2>Terms of Use</h2>
         <p className="last-updated">Last updated: January 17, 2025</p>
       </div>
       
@@ -48,9 +48,10 @@ const TermsOfUse: React.FC = () => {
         <section>
           <h2>Intellectual Property</h2>
           <p>
-            The game design, code, graphics, and other content are protected by copyright and other 
-            intellectual property laws. The Carcassonne game concept is owned by Klaus-Jürgen Wrede 
-            and Z-Man Games. This is a fan-made tribute game created for educational and entertainment purposes.
+            Our original code, game mechanics implementation, and website design are protected by copyright. 
+            The Carcassonne game concept, tile designs, and related trademarks are owned by Klaus-Jürgen Wrede, 
+            Z-Man Games, and their licensors. This game is an independent implementation inspired by Carcassonne 
+            and Tetris concepts. We make no claim to ownership of the original game concepts or any trademarked elements.
           </p>
         </section>
 
