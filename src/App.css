@@ -1,11 +1,18 @@
 .App {
   text-align: center;
-  padding: 20px;
   min-height: 100vh;
   background: linear-gradient(135deg, #81c784 0%, #e8f5e8 100%);
   overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
+}
+
+.main-content {
+  padding: 20px;
+}
+
+.game-content {
+  /* Styles for the game page content */
 }
 
 .score-header {
@@ -273,10 +280,6 @@
   .board-cell {
     width: 40px;
     height: 40px;
-  }
-
-  .App {
-    padding: 10px;
   }
 }
 

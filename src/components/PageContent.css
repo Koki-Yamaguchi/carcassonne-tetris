@@ -1,0 +1,176 @@
+/* Page Content Styles */
+.page-content {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 15px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+  color: #333;
+  line-height: 1.6;
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.page-header h1 {
+  color: #2e7d32;
+  margin-bottom: 10px;
+  font-size: 2.5rem;
+  font-weight: 700;
+}
+
+.last-updated {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+}
+
+/* Content Sections */
+.rules-content,
+.policy-content,
+.terms-content {
+  text-align: left;
+}
+
+.rules-content section,
+.policy-content section,
+.terms-content section {
+  margin-bottom: 30px;
+}
+
+.rules-content h2,
+.policy-content h2,
+.terms-content h2 {
+  color: #1b5e20;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #c8e6c9;
+}
+
+.rules-content h3,
+.policy-content h3,
+.terms-content h3 {
+  color: #2e7d32;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 10px;
+  margin-top: 15px;
+}
+
+.rules-content p,
+.policy-content p,
+.terms-content p {
+  margin-bottom: 12px;
+  text-align: justify;
+}
+
+.rules-content ul,
+.policy-content ul,
+.terms-content ul {
+  margin-bottom: 15px;
+  padding-left: 25px;
+}
+
+.rules-content li,
+.policy-content li,
+.terms-content li {
+  margin-bottom: 8px;
+}
+
+/* Rule Items */
+.rule-item,
+.policy-item,
+.terms-item {
+  background: rgba(76, 175, 80, 0.05);
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  border-left: 4px solid #4caf50;
+}
+
+.rule-item h3,
+.policy-item h3,
+.terms-item h3 {
+  margin-top: 0;
+  color: #1b5e20;
+}
+
+/* Strong text styling */
+strong {
+  color: #1b5e20;
+  font-weight: 600;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-content {
+    margin: 10px;
+    padding: 15px;
+    border-radius: 10px;
+  }
+
+  .page-header h1 {
+    font-size: 2rem;
+  }
+
+  .rules-content h2,
+  .policy-content h2,
+  .terms-content h2 {
+    font-size: 1.3rem;
+  }
+
+  .rules-content h3,
+  .policy-content h3,
+  .terms-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .rule-item,
+  .policy-item,
+  .terms-item {
+    padding: 12px;
+  }
+
+  .rules-content ul,
+  .policy-content ul,
+  .terms-content ul {
+    padding-left: 20px;
+  }
+}
+
+/* Print styles */
+@media print {
+  .page-content {
+    box-shadow: none;
+    background: white;
+    color: black;
+  }
+
+  .page-header h1 {
+    color: black;
+  }
+
+  .rules-content h2,
+  .policy-content h2,
+  .terms-content h2,
+  .rules-content h3,
+  .policy-content h3,
+  .terms-content h3 {
+    color: black;
+  }
+
+  .rule-item,
+  .policy-item,
+  .terms-item {
+    background: #f5f5f5;
+    border-left: 2px solid #666;
+  }
+}

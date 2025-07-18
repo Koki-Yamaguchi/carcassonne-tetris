@@ -21,6 +21,12 @@ import {
   User 
 } from 'firebase/auth';
 
+// Import new components
+import Navigation from './components/Navigation';
+import GameRules from './components/GameRules';
+import PrivacyPolicy from './components/PrivacyPolicy';
+import TermsOfUse from './components/TermsOfUse';
+
 // Carcassonne tile names mapping to your images
 const CARCASSONNE_TILES = [
   'straight',
@@ -424,6 +430,9 @@ const updateUserTotalGames = async (uid: string, finalScore: number): Promise<vo
 };
 
 function App() {
+  // Add page navigation state
+  const [currentPage, setCurrentPage] = useState('game');
+  
   const [board, setBoard] = useState<(BoardCell | null)[][]>(
     Array(BOARD_HEIGHT)
       .fill(null)
@@ -1510,6 +1519,231 @@ function App() {
     fetchGlobalRankings();
   }, [fetchGlobalRankings]);
 
+  // Page navigation handler
+  const handlePageChange = useCallback((page: string) => {
+    setCurrentPage(page);
+  }, []);
+
+  // Render different pages based on current page
+  const renderCurrentPage = () => {
+    switch (currentPage) {
+      case 'rules':
+        return <GameRules />;
+      case 'privacy':
+        return <PrivacyPolicy />;
+      case 'terms':
+        return <TermsOfUse />;
+      case 'game':
+      default:
+        return renderGameContent();
+    }
+  };
+
+  // Extract game content to separate function for cleaner code
+  const renderGameContent = () => {
+    if (authLoading) {
+      return (
+        <div className="loading">
+          <h2>Carcassonne Tetris</h2>
+          <div>Initializing...</div>
+        </div>
+      );
+    }
+
+    return (
+      <div className="game-content">
+        <div className="score-header">
+          <div className="score-left">Score: {score}</div>
+          <div className="score-right">
+            Best: {userProfile ? userProfile.bestScore : bestScore}
+          </div>
+        </div>
+        <div className="header-controls">
+        </div>
+        <div className="game-container">
+          <div className="game-board-container">
+            <div className="game-board">{renderBoard()}</div>
+            {gameStarted && !gameOver && (
+              <div className="pause-button-container">
+                <button 
+                  className="pause-button" 
+                  onClick={gamePaused ? resumeGame : pauseGame}
+                >
+                  {gamePaused ? <FaPlay /> : <FaPause />}
+                </button>
+              </div>
+            )}
+            {!gameStarted && !gameOver && (
+              <div className="start-button-overlay">
+                <button className="start-button" onClick={startGame}>Start</button>
+              </div>
+            )}
+            {(gamePaused || gamePausedFadingOut) && (
+              <div className={`game-paused ${gamePausedFadingOut ? 'fade-out' : ''}`}>
+                <div className="game-paused-title">Game Paused</div>
+                <div className="game-paused-buttons">
+                  <button onClick={resumeGame}>Resume</button>
+                </div>
+              </div>
+            )}
+            {(gameOver || gameOverFadingOut) && (
+              <div className={`game-over ${gameOverFadingOut ? 'fade-out' : ''}`}>
+                <div className="game-over-title">Game Over!</div>
+                <div className="game-over-score">Final Score: {score}</div>
+                <div className="game-over-buttons">
+                  <button onClick={resetGame}>New Game</button>
+                  {score > 0 && !authLoading && userProfile && !userProfile.username && (
+                    <button 
+                      onClick={handleJoinLeaderboard}
+                    >
+                      Join Leaderboard
+                    </button>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {/* Username Input Dialog */}
+            {showUsernameInput && (
+              <div className="username-input">
+                <h3>Join the Leaderboard</h3>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  maxLength={20}
+                  onKeyPress={(e) => e.key === 'Enter' && handleUsernameSubmit()}
+                />
+                <div>
+                  <button onClick={handleUsernameSubmit} disabled={!username.trim()}>
+                    Join
+                  </button>
+                  <button onClick={() => setShowUsernameInput(false)}>
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          {/* Leaderboard positioned for desktop layout */}
+          <div className="rankings desktop-rankings">
+            <h3>Leaderboard</h3>
+            <div className="rankings-list">
+              {globalRankings.length > 0 ? (
+                globalRankings.map((entry, index) => (
+                  <div key={entry.id || index} className="ranking-entry">
+                    <span className="rank">#{index + 1}</span>
+                    <span className="username">
+                      {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
+                    </span>
+                    <span className="score">{entry.score}</span>
+                  </div>
+                ))
+              ) : (
+                <div className="no-scores">No scores yet! Be the first to submit a score.</div>
+              )}
+            </div>
+          </div>
+          
+          {/* Control buttons moved below game board */}
+          <div className="controls">
+            <div>← / A: Move Left</div>
+            <div>→ / D: Move Right</div>
+            <div>↓ / S: Move Down</div>
+            <div>↑ / W / Space: Rotate</div>
+          </div>
+          <div className="mobile-controls">
+            <div className="control-row">
+              <button
+                className="control-button rotate"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('rotate');
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('rotate');
+                }}
+              >
+                ↻
+              </button>
+            </div>
+            <div className="control-row">
+              <button
+                className="control-button"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('left');
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('left');
+                }}
+              >
+                ←
+              </button>
+              <button
+                className="control-button"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('down');
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('down');
+                }}
+              >
+                ↓
+              </button>
+              <button
+                className="control-button"
+                onTouchEnd={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('right');
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  handleTouchControl('right');
+                }}
+              >
+                →
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        {/* Mobile Rankings Display - shown only on mobile */}
+        <div className="rankings mobile-rankings">
+          <h3>Leaderboard</h3>
+          <div className="rankings-list">
+            {globalRankings.length > 0 ? (
+              globalRankings.map((entry, index) => (
+                <div key={entry.id || index} className="ranking-entry">
+                  <span className="rank">#{index + 1}</span>
+                  <span className="username">
+                    {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
+                  </span>
+                  <span className="score">{entry.score}</span>
+                </div>
+              ))
+            ) : (
+              <div className="no-scores">No scores yet! Be the first to submit a score.</div>
+            )}
+          </div>
+        </div>
+        
+        {/* User Identification ID at bottom */}
+        {!authLoading && user && (
+          <div className="user-id-display">
+            Identification ID: {user.uid.substring(0, 12)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   const resetGame = () => {
     if (gameOver) {
       // Start fade-out animation
@@ -1583,204 +1817,10 @@ function App() {
 
   return (
     <div className="App">
-      {authLoading ? (
-        <div className="loading">
-          <h2>Carcassonne Tetris</h2>
-          <div>Initializing...</div>
-        </div>
-      ) : (
-        <>
-          <h2>Carcassonne Tetris</h2>
-          <div className="score-header">
-            <div className="score-left">Score: {score}</div>
-            <div className="score-right">
-              Best: {userProfile ? userProfile.bestScore : bestScore}
-            </div>
-          </div>
-          <div className="header-controls">
-          </div>
-      <div className="game-container">
-        <div className="game-board-container">
-          <div className="game-board">{renderBoard()}</div>
-          {gameStarted && !gameOver && (
-            <div className="pause-button-container">
-              <button 
-                className="pause-button" 
-                onClick={gamePaused ? resumeGame : pauseGame}
-              >
-                {gamePaused ? <FaPlay /> : <FaPause />}
-              </button>
-            </div>
-          )}
-          {!gameStarted && !gameOver && (
-            <div className="start-button-overlay">
-              <button className="start-button" onClick={startGame}>Start</button>
-            </div>
-          )}
-          {(gamePaused || gamePausedFadingOut) && (
-            <div className={`game-paused ${gamePausedFadingOut ? 'fade-out' : ''}`}>
-              <div className="game-paused-title">Game Paused</div>
-              <div className="game-paused-buttons">
-                <button onClick={resumeGame}>Resume</button>
-              </div>
-            </div>
-          )}
-          {(gameOver || gameOverFadingOut) && (
-            <div className={`game-over ${gameOverFadingOut ? 'fade-out' : ''}`}>
-              <div className="game-over-title">Game Over!</div>
-              <div className="game-over-score">Final Score: {score}</div>
-              <div className="game-over-buttons">
-                <button onClick={resetGame}>New Game</button>
-                {score > 0 && !authLoading && userProfile && !userProfile.username && (
-                  <button 
-                    onClick={handleJoinLeaderboard}
-                  >
-                    Join Leaderboard
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-          
-          {/* Username Input Dialog */}
-          {showUsernameInput && (
-            <div className="username-input">
-              <h3>Join the Leaderboard</h3>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
-                maxLength={20}
-                onKeyPress={(e) => e.key === 'Enter' && handleUsernameSubmit()}
-              />
-              <div>
-                <button onClick={handleUsernameSubmit} disabled={!username.trim()}>
-                  Join
-                </button>
-                <button onClick={() => setShowUsernameInput(false)}>
-                  Cancel
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-        
-        {/* Leaderboard positioned for desktop layout */}
-        <div className="rankings desktop-rankings">
-          <h3>Leaderboard</h3>
-          <div className="rankings-list">
-            {globalRankings.length > 0 ? (
-              globalRankings.map((entry, index) => (
-                <div key={entry.id || index} className="ranking-entry">
-                  <span className="rank">#{index + 1}</span>
-                  <span className="username">
-                    {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
-                  </span>
-                  <span className="score">{entry.score}</span>
-                </div>
-              ))
-            ) : (
-              <div className="no-scores">No scores yet! Be the first to submit a score.</div>
-            )}
-          </div>
-        </div>
-        
-        {/* Control buttons moved below game board */}
-        <div className="controls">
-          <div>← / A: Move Left</div>
-          <div>→ / D: Move Right</div>
-          <div>↓ / S: Move Down</div>
-          <div>↑ / W / Space: Rotate</div>
-        </div>
-        <div className="mobile-controls">
-          <div className="control-row">
-            <button
-              className="control-button rotate"
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchControl('rotate');
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleTouchControl('rotate');
-              }}
-            >
-              ↻
-            </button>
-          </div>
-          <div className="control-row">
-            <button
-              className="control-button"
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchControl('left');
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleTouchControl('left');
-              }}
-            >
-              ←
-            </button>
-            <button
-              className="control-button"
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchControl('down');
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleTouchControl('down');
-              }}
-            >
-              ↓
-            </button>
-            <button
-              className="control-button"
-              onTouchEnd={(e) => {
-                e.preventDefault();
-                handleTouchControl('right');
-              }}
-              onMouseDown={(e) => {
-                e.preventDefault();
-                handleTouchControl('right');
-              }}
-            >
-              →
-            </button>
-          </div>
-        </div>
+      <Navigation currentPage={currentPage} onPageChange={handlePageChange} />
+      <div className="main-content">
+        {renderCurrentPage()}
       </div>
-      
-      {/* Mobile Rankings Display - shown only on mobile */}
-      <div className="rankings mobile-rankings">
-        <h3>Leaderboard</h3>
-        <div className="rankings-list">
-          {globalRankings.length > 0 ? (
-            globalRankings.map((entry, index) => (
-              <div key={entry.id || index} className="ranking-entry">
-                <span className="rank">#{index + 1}</span>
-                <span className="username">
-                  {entry.username.length > 14 ? entry.username.substring(0, 14) + '...' : entry.username}
-                </span>
-                <span className="score">{entry.score}</span>
-              </div>
-            ))
-          ) : (
-            <div className="no-scores">No scores yet! Be the first to submit a score.</div>
-          )}
-        </div>
-      </div>
-      
-      {/* User Identification ID at bottom */}
-      {!authLoading && user && (
-        <div className="user-id-display">
-          Identification ID: {user.uid.substring(0, 12)}
-        </div>
-      )}
-        </>
-      )}
     </div>
   );
 }
