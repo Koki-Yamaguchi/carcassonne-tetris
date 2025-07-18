@@ -1544,7 +1544,6 @@ function App() {
     if (authLoading) {
       return (
         <div className="loading">
-          <h2>Carcassonne Tetris</h2>
           <div>Initializing...</div>
         </div>
       );
