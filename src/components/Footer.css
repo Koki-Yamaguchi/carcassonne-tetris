@@ -1,0 +1,38 @@
+/* Footer Styles */
+.footer {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.1);
+  margin-top: auto;
+  padding: 40px 0;
+}
+
+.footer-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  text-align: center;
+}
+
+.footer-text {
+  color: #666;
+  font-size: 14px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .footer {
+    padding: 30px 0;
+  }
+
+  .footer-container {
+    padding: 0 15px;
+  }
+
+  .footer-text {
+    font-size: 13px;
+  }
+}

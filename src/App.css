@@ -5,10 +5,13 @@
   overflow-x: hidden;
   width: 100%;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
 }
 
 .main-content {
   padding: 20px;
+  flex: 1;
 }
 
 .game-content {

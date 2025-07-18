@@ -26,6 +26,7 @@ import Navigation from './components/Navigation';
 import GameRules from './components/GameRules';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfUse from './components/TermsOfUse';
+import Footer from './components/Footer';
 
 // Carcassonne tile names mapping to your images
 const CARCASSONNE_TILES = [
@@ -1820,6 +1821,7 @@ function App() {
       <div className="main-content">
         {renderCurrentPage()}
       </div>
+      <Footer />
     </div>
   );
 }
