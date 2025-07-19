@@ -449,6 +449,8 @@ function App() {
   const [gamePaused, setGamePaused] = useState(false);
   const [gameOverFadingOut, setGameOverFadingOut] = useState(false);
   const [gamePausedFadingOut, setGamePausedFadingOut] = useState(false);
+  const [gameOverModalHidden, setGameOverModalHidden] = useState(false);
+  const [modalHideTimer, setModalHideTimer] = useState<number | null>(null);
   const [nextTileId, setNextTileId] = useState(1);
   const [blinkingTiles, setBlinkingTiles] = useState<Set<number>>(new Set());
   const [globalRankings, setGlobalRankings] = useState<GlobalRankingEntry[]>([]);
@@ -461,6 +463,32 @@ function App() {
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
   const uf = useState(() => new UnionFind())[0];
+
+  // Function to handle hiding modal with auto-show timer
+  const handleHideModalWithTimer = useCallback(() => {
+    setGameOverModalHidden(true);
+    
+    // Clear any existing timer
+    if (modalHideTimer) {
+      clearTimeout(modalHideTimer);
+    }
+    
+    const timerId = window.setTimeout(() => {
+      setGameOverModalHidden(false);
+      setModalHideTimer(null);
+    }, 2000);
+    
+    setModalHideTimer(timerId);
+  }, [modalHideTimer]);
+
+  // Clear timer when component unmounts or game resets
+  useEffect(() => {
+    return () => {
+      if (modalHideTimer) {
+        clearTimeout(modalHideTimer);
+      }
+    };
+  }, [modalHideTimer]);
 
   // Initialize anonymous authentication
   useEffect(() => {
@@ -1588,7 +1616,7 @@ function App() {
                 </div>
               </div>
             )}
-            {(gameOver || gameOverFadingOut) && (
+            {(gameOver || gameOverFadingOut) && !gameOverModalHidden && (
               <div className={`game-over ${gameOverFadingOut ? 'fade-out' : ''}`}>
                 <div className="game-over-title">Game Over!</div>
                 <div className="game-over-score">Final Score: {score}</div>
@@ -1601,6 +1629,20 @@ function App() {
                       Join Leaderboard
                     </button>
                   )}
+                  <button 
+                    onClick={handleHideModalWithTimer}
+                    className="hide-modal-button"
+                  >
+                    See Final Board
+                  </button>
+                  <a 
+                    href={`https://twitter.com/intent/tweet?text=I just scored ${score} points in Carcassonne Tetris!%0A%0APlay now: https://carcassonne-tetris.web.app%0A%23CarcassonneTetris`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="twitter-share-button black-button"
+                  >
+                    Share on X
+                  </a>
                 </div>
               </div>
             )}
@@ -1747,6 +1789,12 @@ function App() {
   };
 
   const resetGame = () => {
+    // Clear any active hide timer
+    if (modalHideTimer) {
+      clearTimeout(modalHideTimer);
+      setModalHideTimer(null);
+    }
+    
     if (gameOver) {
       // Start fade-out animation
       setGameOverFadingOut(true);
@@ -1765,6 +1813,7 @@ function App() {
         setGamePaused(false);
         setGameOverFadingOut(false);
         setGamePausedFadingOut(false);
+        setGameOverModalHidden(false);
         setNextTileId(1);
         setBlinkingTiles(new Set());
         setShowUsernameInput(false);
@@ -1787,6 +1836,7 @@ function App() {
       setGamePaused(false);
       setGameOverFadingOut(false);
       setGamePausedFadingOut(false);
+      setGameOverModalHidden(false);
       setNextTileId(1);
       setBlinkingTiles(new Set());
       setShowUsernameInput(false);

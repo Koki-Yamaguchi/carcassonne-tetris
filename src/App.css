@@ -34,8 +34,7 @@
   border-radius: 15px;
   padding: 8px 16px;
   font-size: 18px;
-  font-weight: 500;
-  color: #222222;
+  font-weight: 500; color: #222222;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
 }
 
@@ -46,7 +45,6 @@
   gap: 30px;
   flex-wrap: wrap;
 }
-
 .game-info {
   background: rgba(255, 255, 255, 0.1);
   padding: 20px;
@@ -140,7 +138,6 @@
   text-decoration: none;
   display: inline-block;
   font-size: 16px;
-  margin: 15px 0;
   cursor: pointer;
   border-radius: 25px;
   transition: all 0.3s ease;
@@ -369,20 +366,30 @@
 /* Game Over Buttons */
 .game-over-buttons {
   display: flex;
-  gap: 10px;
+  flex-direction: column;
+  gap: 8px;
   justify-content: center;
-  margin-top: 2px;
+  margin-top: 5px;
+  align-items: center;
+  width: 100%;
 }
 
-.game-over-buttons button {
-  padding: 10px 20px;
-  font-size: 16px;
+.game-over-buttons button,
+.game-over-buttons a {
+  padding: 8px 16px;
+  font-size: 14px;
   border: none;
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
+  width: 160px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  box-sizing: border-box;
 }
 
+/* New Game button */
 .game-over-buttons button:first-child {
   background: #2e7d32 !important;
   color: white;
@@ -392,13 +399,61 @@
   background: #1b5e20 !important;
 }
 
-.game-over-buttons button:last-child {
+/* Join Leaderboard button (when present) */
+.game-over-buttons button:nth-child(2):not(.hide-modal-button) {
   background: #2196F3;
   color: white;
 }
 
-.game-over-buttons button:last-child:hover {
+.game-over-buttons button:nth-child(2):not(.hide-modal-button):hover {
   background: #1976D2;
+}
+
+/* Hide Modal button */
+.hide-modal-button {
+  background: #757575 !important;
+  color: white !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+}
+
+.hide-modal-button:hover {
+  background: #616161 !important;
+}
+
+/* Twitter Share Button */
+.twitter-share-button {
+  background: #1DA1F2 !important;
+  color: white !important;
+  font-size: 14px !important;
+  padding: 8px 16px !important;
+  text-decoration: none !important;
+  border-radius: 8px !important;
+  border: none !important;
+  cursor: pointer !important;
+  transition: all 0.3s ease !important;
+  display: inline-block !important;
+}
+
+.twitter-share-button:hover {
+  background: #1991DA !important;
+  color: white !important;
+  text-decoration: none !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(29, 161, 242, 0.3);
+}
+
+/* Black button style */
+.black-button {
+  background: #333333 !important;
+  color: white !important;
+}
+
+.black-button:hover {
+  background: #222222 !important;
+  color: white !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(51, 51, 51, 0.3);
 }
 
 .game-over-buttons button:disabled {
