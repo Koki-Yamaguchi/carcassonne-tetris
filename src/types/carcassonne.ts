@@ -61,3 +61,12 @@ export const SAMPLE_TILES: CarcassonneTile[] = [
   },
   // Add more tiles as needed
 ];
+
+// Game tracking interface
+export interface Game {
+  id: string;
+  userId: string;
+  startAt: any; // Firestore Timestamp
+  endAt?: any; // Firestore Timestamp
+  finalScore?: number;
+}

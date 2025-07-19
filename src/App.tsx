@@ -29,6 +29,9 @@ import PrivacyPolicy from './components/PrivacyPolicy';
 import TermsOfUse from './components/TermsOfUse';
 import Footer from './components/Footer';
 
+// Import types
+import { Game } from './types/carcassonne';
+
 // Carcassonne tile names mapping to your images
 const CARCASSONNE_TILES = [
   'straight',
@@ -432,6 +435,35 @@ const updateUserTotalGames = async (uid: string, finalScore: number): Promise<vo
   }
 };
 
+// Game tracking functions
+const createGameRecord = async (uid: string): Promise<string | null> => {
+  try {
+    const gameRef = doc(collection(db, 'games'));
+    await setDoc(gameRef, {
+      userId: uid,
+      startAt: serverTimestamp(),
+      endAt: null,
+      finalScore: null
+    });
+    return gameRef.id;
+  } catch (error) {
+    console.error('Error creating game record:', error);
+    return null;
+  }
+};
+
+const updateGameRecord = async (gameId: string, finalScore: number): Promise<void> => {
+  try {
+    const gameRef = doc(db, 'games', gameId);
+    await updateDoc(gameRef, {
+      endAt: serverTimestamp(),
+      finalScore: finalScore
+    });
+  } catch (error) {
+    console.error('Error updating game record:', error);
+  }
+};
+
 function App() {
   // Add page navigation state
   const [currentPage, setCurrentPage] = useState('game');
@@ -456,6 +488,7 @@ function App() {
   const [globalRankings, setGlobalRankings] = useState<GlobalRankingEntry[]>([]);
   const [showUsernameInput, setShowUsernameInput] = useState(false);
   const [username, setUsername] = useState('');
+  const [currentGameId, setCurrentGameId] = useState<string | null>(null);
   
   // Auth state
   const [user, setUser] = useState<User | null>(null);
@@ -487,6 +520,8 @@ function App() {
       if (modalHideTimer) {
         clearTimeout(modalHideTimer);
       }
+      // Clear current game ID on unmount (game abandoned)
+      setCurrentGameId(null);
     };
   }, [modalHideTimer]);
 
@@ -1356,6 +1391,11 @@ function App() {
         // Update total games count and best score when game ends
         if (user) {
           await updateUserTotalGames(user.uid, score);
+          // Update game tracking record
+          if (currentGameId) {
+            await updateGameRecord(currentGameId, score);
+            setCurrentGameId(null);
+          }
           // Refresh user profile to show updated total games and best score
           const updatedProfile = await getUserProfile(user.uid);
           setUserProfile(updatedProfile);
@@ -1374,6 +1414,11 @@ function App() {
         // Update total games count and best score when game ends
         if (user) {
           await updateUserTotalGames(user.uid, score);
+          // Update game tracking record
+          if (currentGameId) {
+            await updateGameRecord(currentGameId, score);
+            setCurrentGameId(null);
+          }
           // Refresh user profile to show updated total games and best score
           const updatedProfile = await getUserProfile(user.uid);
           setUserProfile(updatedProfile);
@@ -1389,6 +1434,7 @@ function App() {
     createNewPiece,
     user,
     score,
+    currentGameId,
   ]);
 
   // Note: bestScore is now managed in Firestore and updated when game ends
@@ -1788,7 +1834,7 @@ function App() {
     );
   };
 
-  const resetGame = () => {
+  const resetGame = async () => {
     // Clear any active hide timer
     if (modalHideTimer) {
       clearTimeout(modalHideTimer);
@@ -1800,7 +1846,7 @@ function App() {
       setGameOverFadingOut(true);
       
       // After animation completes, reset the game
-      setTimeout(() => {
+      setTimeout(async () => {
         setBoard(
           Array(BOARD_HEIGHT)
             .fill(null)
@@ -1821,6 +1867,12 @@ function App() {
         uf.reset();
         tileRoadFeatures.clear();
         tileCityFeatures.clear();
+        
+        // Create new game tracking record
+        if (user) {
+          const gameId = await createGameRecord(user.uid);
+          setCurrentGameId(gameId);
+        }
       }, 300); // Match the CSS animation duration
     } else {
       // Direct reset if not from game over modal
@@ -1843,11 +1895,23 @@ function App() {
       uf.reset();
       tileRoadFeatures.clear();
       tileCityFeatures.clear();
+      
+      // Create new game tracking record
+      if (user) {
+        const gameId = await createGameRecord(user.uid);
+        setCurrentGameId(gameId);
+      }
     }
   };
 
-  const startGame = () => {
+  const startGame = async () => {
     setGameStarted(true);
+    
+    // Create game tracking record
+    if (user) {
+      const gameId = await createGameRecord(user.uid);
+      setCurrentGameId(gameId);
+    }
   };
 
   const pauseGame = () => {
