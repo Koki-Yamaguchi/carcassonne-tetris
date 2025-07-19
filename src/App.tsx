@@ -13,7 +13,8 @@ import {
   doc,
   setDoc,
   getDoc,
-  updateDoc
+  updateDoc,
+  where
 } from 'firebase/firestore';
 import { 
   signInAnonymously, 
@@ -374,6 +375,7 @@ const getGlobalRankings = async (): Promise<GlobalRankingEntry[]> => {
   try {
     const q = query(
       collection(db, 'users'),
+      where('username', '!=', ''),
       orderBy('bestScore', 'desc'),
       limit(50)
     );

@@ -6,7 +6,7 @@ const TermsOfUse: React.FC = () => {
     <div className="page-content">
       <div className="page-header">
         <h2>Terms of Use</h2>
-        <p className="last-updated">Last updated: January 17, 2025</p>
+        <p className="last-updated">Last updated: July 19, 2025</p>
       </div>
       
       <div className="terms-content">
